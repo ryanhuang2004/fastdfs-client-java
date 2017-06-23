@@ -14,6 +14,7 @@ import org.csource.common.NameValuePair;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -291,7 +292,8 @@ public class ProtoCommon {
     byte[] header;
     header = packHeader(FDFS_PROTO_CMD_QUIT, 0, (byte) 0);
     sock.getOutputStream().write(header);
-    sock.close();
+    InetSocketAddress addr = new InetSocketAddress(sock.getInetAddress(), sock.getPort());
+    ClientGlobal.SOCKET_POOL.returnObject(addr, sock);
   }
 
   /**

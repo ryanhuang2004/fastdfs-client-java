@@ -8,7 +8,6 @@
 
 package org.csource.fastdfs;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
@@ -26,8 +25,9 @@ public class StorageServer extends TrackerServer {
    * @param ip_addr    the ip address of storage server
    * @param port       the port of storage server
    * @param store_path the store path index on the storage server
+   * @throws Exception 
    */
-  public StorageServer(String ip_addr, int port, int store_path) throws IOException {
+  public StorageServer(String ip_addr, int port, int store_path) throws Exception {
     super(ClientGlobal.getSocket(ip_addr, port), new InetSocketAddress(ip_addr, port));
     this.store_path_index = store_path;
   }
@@ -38,8 +38,9 @@ public class StorageServer extends TrackerServer {
    * @param ip_addr    the ip address of storage server
    * @param port       the port of storage server
    * @param store_path the store path index on the storage server
+   * @throws Exception 
    */
-  public StorageServer(String ip_addr, int port, byte store_path) throws IOException {
+  public StorageServer(String ip_addr, int port, byte store_path) throws Exception {
     super(ClientGlobal.getSocket(ip_addr, port), new InetSocketAddress(ip_addr, port));
     if (store_path < 0) {
       this.store_path_index = 256 + store_path;

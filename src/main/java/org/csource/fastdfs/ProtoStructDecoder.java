@@ -34,7 +34,8 @@ public class ProtoStructDecoder<T extends StructBase> {
 
     int count = bs.length / fieldsTotalSize;
     int offset;
-    T[] results = (T[]) Array.newInstance(clazz, count);
+    @SuppressWarnings("unchecked")
+	T[] results = (T[]) Array.newInstance(clazz, count);
 
     offset = 0;
     for (int i = 0; i < results.length; i++) {

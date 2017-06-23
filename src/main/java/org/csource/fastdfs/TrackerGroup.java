@@ -10,7 +10,9 @@ package org.csource.fastdfs;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracker server group
@@ -19,88 +21,96 @@ import java.net.Socket;
  * @version Version 1.17
  */
 public class TrackerGroup {
-  public int tracker_server_index;
-  public InetSocketAddress[] tracker_servers;
-  protected Integer lock;
 
-  /**
-   * Constructor
-   *
-   * @param tracker_servers tracker servers
-   */
-  public TrackerGroup(InetSocketAddress[] tracker_servers) {
-    this.tracker_servers = tracker_servers;
-    this.lock = new Integer(0);
-    this.tracker_server_index = 0;
-  }
+	private static final Logger logger = LoggerFactory.getLogger(TrackerGroup.class);
 
-  /**
-   * return connected tracker server
-   *
-   * @return connected tracker server, null for fail
-   */
-  public TrackerServer getConnection(int serverIndex) throws IOException {
-    Socket sock = new Socket();
-    sock.setReuseAddress(true);
-    sock.setSoTimeout(ClientGlobal.g_network_timeout);
-    sock.connect(this.tracker_servers[serverIndex], ClientGlobal.g_connect_timeout);
-    return new TrackerServer(sock, this.tracker_servers[serverIndex]);
-  }
+	public int tracker_server_index;
+	public InetSocketAddress[] tracker_servers;
+	protected Integer lock;
 
-  /**
-   * return connected tracker server
-   *
-   * @return connected tracker server, null for fail
-   */
-  public TrackerServer getConnection() throws IOException {
-    int current_index;
+	/**
+	 * Constructor
+	 *
+	 * @param tracker_servers
+	 *            tracker servers
+	 */
+	public TrackerGroup(InetSocketAddress[] tracker_servers) {
+		this.tracker_servers = tracker_servers;
+		this.lock = new Integer(0);
+		this.tracker_server_index = 0;
+	}
 
-    synchronized (this.lock) {
-      this.tracker_server_index++;
-      if (this.tracker_server_index >= this.tracker_servers.length) {
-        this.tracker_server_index = 0;
-      }
+	/**
+	 * return connected tracker server
+	 *
+	 * @return connected tracker server, null for fail
+	 * @throws Exception
+	 */
+	public TrackerServer getConnection(int serverIndex) throws Exception {
+		return new TrackerServer(
+				ClientGlobal.SOCKET_POOL.borrowObject(this.tracker_servers[serverIndex]),
+				this.tracker_servers[serverIndex]
+		);
+	}
 
-      current_index = this.tracker_server_index;
-    }
+	/**
+	 * return connected tracker server
+	 *
+	 * @return connected tracker server, null for fail
+	 */
+	public TrackerServer getConnection() throws IOException {
+		int current_index;
 
-    try {
-      return this.getConnection(current_index);
-    } catch (IOException ex) {
-      System.err.println("connect to server " + this.tracker_servers[current_index].getAddress().getHostAddress() + ":" + this.tracker_servers[current_index].getPort() + " fail");
-      ex.printStackTrace(System.err);
-    }
+		synchronized (this.lock) {
+			this.tracker_server_index++;
+			if (this.tracker_server_index >= this.tracker_servers.length) {
+				this.tracker_server_index = 0;
+			}
 
-    for (int i = 0; i < this.tracker_servers.length; i++) {
-      if (i == current_index) {
-        continue;
-      }
+			current_index = this.tracker_server_index;
+		}
 
-      try {
-        TrackerServer trackerServer = this.getConnection(i);
+		try {
+			return this.getConnection(current_index);
+		} catch (Exception ex) {
+			logger.error("Connect to Server [{}:{}] failed", 
+					this.tracker_servers[current_index].getAddress().getHostAddress(),
+					this.tracker_servers[current_index].getPort(),
+					ex);
+		}
 
-        synchronized (this.lock) {
-          if (this.tracker_server_index == current_index) {
-            this.tracker_server_index = i;
-          }
-        }
+		for (int i = 0; i < this.tracker_servers.length; i++) {
+			if (i == current_index) {
+				continue;
+			}
+			try {
+				TrackerServer trackerServer = this.getConnection(i);
 
-        return trackerServer;
-      } catch (IOException ex) {
-        System.err.println("connect to server " + this.tracker_servers[i].getAddress().getHostAddress() + ":" + this.tracker_servers[i].getPort() + " fail");
-        ex.printStackTrace(System.err);
-      }
-    }
+				synchronized (this.lock) {
+					if (this.tracker_server_index == current_index) {
+						this.tracker_server_index = i;
+					}
+				}
 
-    return null;
-  }
+				return trackerServer;
+			} catch (Exception ex) {
+				logger.error("Connect to Server [{}:{}] failed", 
+						this.tracker_servers[i].getAddress().getHostAddress(),
+						this.tracker_servers[i].getPort(),
+						ex);
+			}
+		}
 
-  public Object clone() {
-    InetSocketAddress[] trackerServers = new InetSocketAddress[this.tracker_servers.length];
-    for (int i = 0; i < trackerServers.length; i++) {
-      trackerServers[i] = new InetSocketAddress(this.tracker_servers[i].getAddress().getHostAddress(), this.tracker_servers[i].getPort());
-    }
+		return null;
+	}
 
-    return new TrackerGroup(trackerServers);
-  }
+	public Object clone() {
+		InetSocketAddress[] trackerServers = new InetSocketAddress[this.tracker_servers.length];
+		for (int i = 0; i < trackerServers.length; i++) {
+			trackerServers[i] = new InetSocketAddress(this.tracker_servers[i].getAddress().getHostAddress(),
+					this.tracker_servers[i].getPort());
+		}
+
+		return new TrackerGroup(trackerServers);
+	}
 }

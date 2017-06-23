@@ -39,12 +39,12 @@ public class TrackerServer {
    * get the connected socket
    *
    * @return the socket
+   * @throws Exception 
    */
-  public Socket getSocket() throws IOException {
+  public Socket getSocket() throws Exception {
     if (this.sock == null) {
       this.sock = ClientGlobal.getSocket(this.inetSockAddr);
     }
-
     return this.sock;
   }
 
