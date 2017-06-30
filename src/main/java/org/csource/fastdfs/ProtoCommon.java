@@ -289,9 +289,9 @@ public class ProtoCommon {
    * @param sock the Socket object
    */
   public static void closeSocket(Socket sock) throws IOException {
-    byte[] header;
-    header = packHeader(FDFS_PROTO_CMD_QUIT, 0, (byte) 0);
-    sock.getOutputStream().write(header);
+//    byte[] header;
+//    header = packHeader(FDFS_PROTO_CMD_QUIT, 0, (byte) 0);
+//    sock.getOutputStream().write(header);
     InetSocketAddress addr = new InetSocketAddress(sock.getInetAddress(), sock.getPort());
     ClientGlobal.SOCKET_POOL.returnObject(addr, sock);
   }
