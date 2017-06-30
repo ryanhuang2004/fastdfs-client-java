@@ -27,6 +27,7 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 
 	@Override
 	public void destroyObject(InetSocketAddress address, PooledObject<Socket> pooledObject) throws Exception {
+		logger.trace("destroying Socket Object with address [{}:{}]", pooledObject.getObject().getInetAddress(), pooledObject.getObject().getPort());
 		pooledObject.getObject().close();
 	}
 
@@ -46,6 +47,7 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 
 	@Override
 	public boolean validateObject(InetSocketAddress address, PooledObject<Socket> pooledObject) {
+		logger.trace("validating socket object with InetSocketAddress [{}:{}]", pooledObject.getObject().getInetAddress(), pooledObject.getObject().getPort());
 		Socket sock = pooledObject.getObject();
 		InetSocketAddress actualAddress = new InetSocketAddress(sock.getInetAddress(), sock.getPort());
 		if ( !actualAddress.equals(address) ) {

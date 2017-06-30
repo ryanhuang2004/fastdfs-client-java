@@ -8,18 +8,22 @@
 
 package org.csource.fastdfs;
 
-import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
-import org.apache.commons.pool2.impl.GenericKeyedObjectPoolConfig;
-import org.csource.common.IniFileReader;
-import org.csource.common.MyException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+
+import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
+import org.apache.commons.pool2.impl.GenericKeyedObjectPoolConfig;
+import org.csource.common.IniFileReader;
+import org.csource.common.MyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Global variables
@@ -28,6 +32,8 @@ import java.util.Properties;
  * @version Version 1.11
  */
 public class ClientGlobal {
+	
+	private static final Logger logger = LoggerFactory.getLogger(ClientGlobal.class);
 
 	private static Boolean INITED = Boolean.FALSE;
 
@@ -87,6 +93,27 @@ public class ClientGlobal {
 		config.setMaxTotalPerKey(128);
 		SOCKET_POOL = new GenericKeyedObjectPool<InetSocketAddress, Socket>(factory, config);
 	}
+	
+	public static void showPoolStatus() {
+		logger.info("===========SOCKET连接池状态===========");
+		logger.info("SOCKET连接池当前共创建[{}]个链接", SOCKET_POOL.getCreatedCount());
+		logger.info("SOCKET连接池借出链接次数[{}]", SOCKET_POOL.getBorrowedCount());
+		logger.info("SOCKET连接池总共摧毁链接对象次数[{}]", SOCKET_POOL.getDestroyedCount());
+		logger.info("SOCKET连接池因测试未通过摧毁链接对象次数[{}]", SOCKET_POOL.getDestroyedByBorrowValidationCount());
+		logger.info("SOCKET连接池因链接未使用检测摧毁链接对象次数[{}]", SOCKET_POOL.getDestroyedByEvictorCount());
+		logger.info("SOCKET连接池当前共借出链接对象个数[{}]", SOCKET_POOL.getNumActive());
+		Map<String, Integer> numActivePerKey = SOCKET_POOL.getNumActivePerKey();
+		for ( Entry<String, Integer> e : numActivePerKey.entrySet() ) {
+			logger.info("SOCKET连接池中的子连接池[{}]有[{}]个链接未回收", e.getKey(), e.getValue());
+		}
+		logger.info("SOCKET连接池当前共有[{}]个链接对象", SOCKET_POOL.getNumIdle());
+		logger.info("SOCKET连接池当前共有[{}]个线程在等待获取链接", SOCKET_POOL.getNumWaiters());
+		Map<String, Integer> numWaitersPerKey = SOCKET_POOL.getNumWaitersByKey();
+		for ( Entry<String, Integer> e : numWaitersPerKey.entrySet() ) {
+			logger.info("SOCKET连接池中的子连接池[{}]有[{}]个线程在等待获取链接", e.getKey(), e.getValue());
+		}
+		logger.info("SOCKET连接池当前共回收过[{}]个链接对象", SOCKET_POOL.getReturnedCount());
+	}
 
 	/**
 	 * load global variables
@@ -117,7 +144,8 @@ public class ClientGlobal {
 
 				g_charset = iniReader.getStrValue("charset");
 				if (g_charset == null || g_charset.length() == 0) {
-					g_charset = "ISO8859-1";
+//					g_charset = "ISO8859-1";
+					g_charset = "UTF-8";
 				}
 
 				szTrackerServers = iniReader.getValues("tracker_server");
