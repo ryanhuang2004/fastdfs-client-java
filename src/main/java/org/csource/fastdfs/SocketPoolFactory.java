@@ -38,6 +38,8 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 	public PooledObject<Socket> makeObject(InetSocketAddress address) throws Exception {
 		Socket sock = new Socket();
 	    sock.setReuseAddress(true);
+	    sock.setKeepAlive(true);
+	    sock.setTcpNoDelay(true);
 	    sock.setSoTimeout(ClientGlobal.g_network_timeout);
 	    sock.connect(address, ClientGlobal.g_connect_timeout);
 		return new DefaultPooledObject<Socket>(sock);
