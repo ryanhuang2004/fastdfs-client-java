@@ -8,6 +8,8 @@
 
 package org.csource.fastdfs;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -78,20 +80,137 @@ public class ClientGlobal {
 	 * 新加入的连接池对象， 通过调用init方法启动
 	 */
 	public static GenericKeyedObjectPool<InetSocketAddress, Socket> SOCKET_POOL;
+	
+	public static final String CONF_KEY_POOL_CONFIG_FILE = "pool.config.file";
+	
+	public static final String CONF_KEY_POOL_MINIDLEPERKEY = "pool.min_idle_per_key";
+	public static final String CONF_KEY_POOL_MAXIDLEPERKEY = "pool.max_idle_per_key";
+	public static final String CONF_KEY_POOL_MAXTOTALPERKEY = "pool.max_total_per_key";
+	public static final String CONF_KEY_POOL_MAXTOTAL = "pool.max_total";
 	public static final String CONF_KEY_POOL_BLOCKWHENEXHAUSTED = "pool.block_when_exhausted";
-	public static final String PROP_KEY_POOL_BLOCKWHENEXHAUSTED = "fastdfs.pool.block_when_exhausted";
-
+	public static final String CONF_KEY_POOL_LIFO = "pool.lifo";
+	public static final String CONF_KEY_POOL_FAIRNESS = "pool.fairness";
+	public static final String CONF_KEY_POOL_MAXWAITMILLIS = "pool.max_wait_millis";
+	public static final String CONF_KEY_POOL_MINEVICTABLEIDLETIMEMILLIS = "pool.min_evictable_idle_time_millis";
+	public static final String CONF_KEY_POOL_NUMTESTSPEREVICTIONRUN = "pool.num_tests_per_eviction_run";
+	public static final String CONF_KEY_POOL_TESTONCREATE = "pool.test_on_create";
+	public static final String CONF_KEY_POOL_TESTONBORROW = "pool.test_on_borrow";
+	public static final String CONF_KEY_POOL_TESTONRETURN = "pool.test_on_return";
+	public static final String CONF_KEY_POOL_TESTWHILEIDLE = "pool.test_while_idle";
+	public static final String CONF_KEY_POOL_TIMEBETWEENEVICTIONRUNSMILLIS = "pool.time_between_eviction_runs_millis";
+	
+	public static final String DFT_POOL_PROPERTIES = "socketPoolConfig.properties";
+	public static final int DFT_MIN_IDLE_PER_KEY = 16;
+	public static final int DFT_MAX_IDLE_PER_KEY = 32;
+	public static final int DFT_MAX_TOTAL_PER_KEY = 256;
+	public static final int DFT_MAX_TOTAL = -1;
+	public static final boolean DFT_BLOCK_WHEN_EXHAUSTED = true;
+	public static final boolean DFT_LIFO = true;
+	public static final boolean DFT_FAIRNESS = true;
+	public static final long DFT_MAX_WAIT_MILLIS = 60*1000l;
+	public static final long DFT_MIN_EVICTABLE_IDLE_TIME_MILLIS = 30*60*1000l;
+	public static final int DFT_NUM_TESTS_PER_EVICTION_RUN = 16;
+	public static final boolean DFT_TEST_ON_CREATE = true;
+	public static final boolean DFT_TEST_ON_BORROW = true;
+	public static final boolean DFT_TEST_ON_RETURN = true;
+	public static final boolean DFT_TEST_WHILE_IDLE = true;
+	public static final long DFT_TIME_BETWEEN_EVICTION_RUNS_MILLIS = 30*1000l;
+	
 	private ClientGlobal() {
 	}
 
-	private static void initSocketPool() {
+	private static Properties getPoolProperties(String propertyFilePath) {
+		String _path = propertyFilePath;
+		Properties p = new Properties();
+		FileInputStream fis = null;
+		if ( !(null != _path && !_path.trim().isEmpty()) )
+			_path = DFT_POOL_PROPERTIES;
+		try {
+			fis = new FileInputStream(_path);
+			p.load(fis);
+		} catch (FileNotFoundException e) {
+			logger.error("无法SocketPool相关配置文件件[{}]", _path, e);
+		} catch (IOException e) {
+			logger.error("读取SocketPool配置文件[{}]失败", _path, e);
+		} finally {
+			if ( null != fis ) {
+				try {
+					fis.close();
+				} catch ( IOException e ) {
+					logger.warn("关闭SocketPool配置文件[{}]流失败", _path);
+				} finally {
+					fis = null;
+				}
+			}
+		}
+		return p;
+	}
+	
+	private static boolean loadValueAsBoolean(Properties p, String key, boolean defaultValue) {
+		boolean _v = defaultValue;
+		if ( null == p )
+			return _v;
+		String _sv = p.getProperty(key);
+		if ( null == _sv || "".equals(_sv) ) {
+			_v = defaultValue;
+		} else {
+			_v = Boolean.valueOf(_sv).booleanValue();
+		}
+		return _v;
+	}
+	
+	private static int loadValueAsInt(Properties p, String key, int defaultValue) {
+		int _v = defaultValue;
+		if ( null == p )
+			return _v;
+		String _sv = p.getProperty(key);
+		if ( null == _sv || "".equals(_sv) ) {
+			_v = defaultValue;
+		} else {
+			_v = Integer.valueOf(_sv).intValue();
+		}
+		return _v;
+	}
+	
+	private static long loadValueAsLong(Properties p, String key, long defaultValue) {
+		long _v = defaultValue;
+		if ( null == p )
+			return _v;
+		String _sv = p.getProperty(key);
+		if ( null == _sv || "".equals(_sv) ) {
+			_v = defaultValue;
+		} else {
+			_v = Long.valueOf(_sv).longValue();
+		}
+		return _v;
+	}
+	
+	private static void initSocketPool(String propertyFilePath) {
+		Properties p = ClientGlobal.getPoolProperties(propertyFilePath);
 		SocketPoolFactory factory = new SocketPoolFactory();
 		GenericKeyedObjectPoolConfig config = new GenericKeyedObjectPoolConfig();
-		config.setBlockWhenExhausted(true);
-		config.setMaxIdlePerKey(10);
-		config.setMaxTotal(512);
-		config.setMaxTotalPerKey(128);
+		config.setMinIdlePerKey(loadValueAsInt(p, CONF_KEY_POOL_MINIDLEPERKEY, DFT_MIN_IDLE_PER_KEY));
+		config.setMaxIdlePerKey(loadValueAsInt(p, CONF_KEY_POOL_MAXIDLEPERKEY, DFT_MAX_IDLE_PER_KEY));
+		config.setMaxTotalPerKey(loadValueAsInt(p, CONF_KEY_POOL_MAXTOTALPERKEY, DFT_MAX_TOTAL_PER_KEY));
+		config.setMaxTotal(loadValueAsInt(p, CONF_KEY_POOL_MAXTOTAL, DFT_MAX_TOTAL));
+		config.setBlockWhenExhausted(loadValueAsBoolean(p, CONF_KEY_POOL_BLOCKWHENEXHAUSTED, DFT_BLOCK_WHEN_EXHAUSTED));
+		config.setLifo(loadValueAsBoolean(p, CONF_KEY_POOL_LIFO, DFT_LIFO));
+		config.setFairness(loadValueAsBoolean(p, CONF_KEY_POOL_FAIRNESS, DFT_FAIRNESS));
+		config.setMaxWaitMillis(loadValueAsLong(p, CONF_KEY_POOL_MAXWAITMILLIS, DFT_MAX_WAIT_MILLIS));
+		config.setMinEvictableIdleTimeMillis(loadValueAsLong(p, CONF_KEY_POOL_MINEVICTABLEIDLETIMEMILLIS, DFT_MIN_EVICTABLE_IDLE_TIME_MILLIS));
+		config.setNumTestsPerEvictionRun(loadValueAsInt(p, CONF_KEY_POOL_NUMTESTSPEREVICTIONRUN, DFT_NUM_TESTS_PER_EVICTION_RUN));
+		config.setTestOnCreate(loadValueAsBoolean(p, CONF_KEY_POOL_TESTONCREATE, DFT_TEST_ON_CREATE));
+		config.setTestOnBorrow(loadValueAsBoolean(p, CONF_KEY_POOL_TESTONBORROW, DFT_TEST_ON_BORROW));
+		config.setTestOnReturn(loadValueAsBoolean(p, CONF_KEY_POOL_TESTONRETURN, DFT_TEST_ON_RETURN));
+		config.setTestWhileIdle(loadValueAsBoolean(p, CONF_KEY_POOL_TESTWHILEIDLE, DFT_TEST_WHILE_IDLE));
+		config.setTimeBetweenEvictionRunsMillis(
+				loadValueAsLong(p, CONF_KEY_POOL_TIMEBETWEENEVICTIONRUNSMILLIS, DFT_TIME_BETWEEN_EVICTION_RUNS_MILLIS)
+		);
 		SOCKET_POOL = new GenericKeyedObjectPool<InetSocketAddress, Socket>(factory, config);
+	}
+	
+	private static void initSocketPool() {
+		initSocketPool(null);
 	}
 	
 	public static void showPoolStatus() {
@@ -144,7 +263,6 @@ public class ClientGlobal {
 
 				g_charset = iniReader.getStrValue("charset");
 				if (g_charset == null || g_charset.length() == 0) {
-//					g_charset = "ISO8859-1";
 					g_charset = "UTF-8";
 				}
 
@@ -170,7 +288,8 @@ public class ClientGlobal {
 				if (g_anti_steal_token) {
 					g_secret_key = iniReader.getStrValue("http.secret_key");
 				}
-				initSocketPool();
+				String poolConfigFile = iniReader.getStrValue(CONF_KEY_POOL_CONFIG_FILE);
+				initSocketPool(poolConfigFile);
 				INITED = Boolean.TRUE;
 			}
 		}
@@ -216,6 +335,7 @@ public class ClientGlobal {
 				String httpAntiStealTokenConf = props.getProperty(PROP_KEY_HTTP_ANTI_STEAL_TOKEN);
 				String httpSecretKeyConf = props.getProperty(PROP_KEY_HTTP_SECRET_KEY);
 				String httpTrackerHttpPortConf = props.getProperty(PROP_KEY_HTTP_TRACKER_HTTP_PORT);
+				String poolConfigFilePath = props.getProperty(CONF_KEY_POOL_CONFIG_FILE);
 				if (connectTimeoutInSecondsConf != null && connectTimeoutInSecondsConf.trim().length() != 0) {
 					g_connect_timeout = Integer.parseInt(connectTimeoutInSecondsConf.trim()) * 1000;
 				}
@@ -234,7 +354,7 @@ public class ClientGlobal {
 				if (httpTrackerHttpPortConf != null && httpTrackerHttpPortConf.trim().length() != 0) {
 					g_tracker_http_port = Integer.parseInt(httpTrackerHttpPortConf);
 				}
-				initSocketPool();
+				initSocketPool(poolConfigFilePath);
 				INITED = Boolean.TRUE;
 			} 
 		}

@@ -10,5 +10,3 @@ fastdfs.http_secret_key = FastDFS1234567890
 fastdfs.http_tracker_http_port = 80
 
 fastdfs.tracker_servers = 10.30.202.60:22122,10.30.202.62:22122
-
-pool.config.file=socketPoolConfig.properties
