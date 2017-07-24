@@ -8,7 +8,6 @@
 
 package org.csource.fastdfs;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -99,7 +98,7 @@ public class ClientGlobal {
 	public static final String CONF_KEY_POOL_TESTWHILEIDLE = "pool.test_while_idle";
 	public static final String CONF_KEY_POOL_TIMEBETWEENEVICTIONRUNSMILLIS = "pool.time_between_eviction_runs_millis";
 	
-	public static final String DFT_POOL_PROPERTIES = "socketPoolConfig.properties";
+	public static final String DFT_POOL_PROPERTIES = "/socketPoolConfig.properties";
 	public static final int DFT_MIN_IDLE_PER_KEY = 16;
 	public static final int DFT_MAX_IDLE_PER_KEY = 32;
 	public static final int DFT_MAX_TOTAL_PER_KEY = 256;
@@ -122,24 +121,24 @@ public class ClientGlobal {
 	private static Properties getPoolProperties(String propertyFilePath) {
 		String _path = propertyFilePath;
 		Properties p = new Properties();
-		FileInputStream fis = null;
+		InputStream is = null;
 		if ( !(null != _path && !_path.trim().isEmpty()) )
 			_path = DFT_POOL_PROPERTIES;
 		try {
-			fis = new FileInputStream(_path);
-			p.load(fis);
+			is = ClientGlobal.class.getResourceAsStream(_path);
+			p.load(is);
 		} catch (FileNotFoundException e) {
 			logger.error("无法SocketPool相关配置文件件[{}]", _path, e);
 		} catch (IOException e) {
 			logger.error("读取SocketPool配置文件[{}]失败", _path, e);
 		} finally {
-			if ( null != fis ) {
+			if ( null != is ) {
 				try {
-					fis.close();
+					is.close();
 				} catch ( IOException e ) {
 					logger.warn("关闭SocketPool配置文件[{}]流失败", _path);
 				} finally {
-					fis = null;
+					is = null;
 				}
 			}
 		}
