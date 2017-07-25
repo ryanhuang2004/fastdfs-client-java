@@ -1,5 +1,6 @@
 package org.csource.fastdfs;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -39,8 +40,7 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 		Socket sock = new Socket();
 	    sock.setReuseAddress(true);
 	    sock.setKeepAlive(true);
-	    sock.setTcpNoDelay(true);
-	    sock.setSoTimeout(ClientGlobal.g_network_timeout);
+//	    sock.setSoTimeout(ClientGlobal.g_network_timeout);
 	    sock.connect(address, ClientGlobal.g_connect_timeout);
 		return new DefaultPooledObject<Socket>(sock);
 	}
@@ -61,7 +61,16 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 			return false;
 		}
 		if ( !sock.isConnected() || sock.isInputShutdown() || sock.isOutputShutdown() ) {
-			logger.info("Validating SOcket Object failed since the connection is down or the input stream is down or the outputsteam is down");
+			logger.debug("Validating Socket Object failed since the connection is down or the input stream is down or the outputsteam is down");
+			return false;
+		}
+		try {
+			if ( !ProtoCommon.activeTest(sock) ) {
+				logger.debug("Validating Socket Object failed since its not pass the activeTest");
+				return false;
+			}
+		} catch (IOException e) {
+			logger.debug("Validating Socket Object failed since activeTest throws IOException", e);
 			return false;
 		}
 		return true;
