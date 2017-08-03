@@ -40,7 +40,7 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 		Socket sock = new Socket();
 	    sock.setReuseAddress(true);
 	    sock.setKeepAlive(true);
-//	    sock.setSoTimeout(ClientGlobal.g_network_timeout);
+	    sock.setSoTimeout(ClientGlobal.g_network_timeout);
 	    sock.connect(address, ClientGlobal.g_connect_timeout);
 		return new DefaultPooledObject<Socket>(sock);
 	}
