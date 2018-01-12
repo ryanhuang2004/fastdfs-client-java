@@ -29,10 +29,13 @@ public class SocketPoolFactory implements KeyedPooledObjectFactory<InetSocketAdd
 	@Override
 	public void destroyObject(InetSocketAddress address, PooledObject<Socket> pooledObject) throws Exception {
 		logger.trace("destroying Socket Object with address [{}:{}]", pooledObject.getObject().getInetAddress(), pooledObject.getObject().getPort());
-		byte[] header = ProtoCommon.packHeader(ProtoCommon.FDFS_PROTO_CMD_QUIT, 0, (byte) 0);
-	    pooledObject.getObject().getOutputStream().write(header);
-	    pooledObject.getObject().getOutputStream().flush();
-		pooledObject.getObject().close();
+		try {
+			byte[] header = ProtoCommon.packHeader(ProtoCommon.FDFS_PROTO_CMD_QUIT, 0, (byte) 0);
+		    pooledObject.getObject().getOutputStream().write(header);
+		    pooledObject.getObject().getOutputStream().flush();
+		} finally {
+			pooledObject.getObject().close();
+		}
 	}
 
 	@Override
